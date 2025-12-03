@@ -12,7 +12,8 @@
 int clientArr[MaxConnects];
 int clientNum = 0;
 pthread_t threads[MaxConnects];
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t clientMutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t listeningMutex = PTHREAD_MUTEX_INITIALIZER;
 
 void report(const char* msg, int terminate) {
         perror(msg);
@@ -27,7 +28,6 @@ void *clientFunc(void *ptr) {
 
         // constantly send to and receive from client
         while(1) {
-                pthread_mutex_lock(&mutex);
                 memset(buffer, '\0', sizeof(buffer)); // reset buffer
                 int count = recv(client_fd, &buffer, sizeof(buffer), 0);
                 if (count > 0) { // received a message
@@ -35,22 +35,23 @@ void *clientFunc(void *ptr) {
                         int curr_client;
                         for (int i = 0; i < MaxConnects; ++i) {
                                 curr_client = clientArr[i];
-                                if (curr_client > 0) // on valid address
+                                if (curr_client > 0 && curr_client != client_fd) // on valid address
                                         send(curr_client, &buffer, sizeof(buffer), 0);
                         } // end for
 
                         if (strcmp(buffer, "exit") == 0) {
-                                pthread_mutex_unlock(&mutex);
+                                pthread_mutex_unlock(&clientMutex);
                                 break;
                         } // end if
                         else {
                                 // save to chat history
+                                pthread_mutex_lock(&clientMutex);
                                 fp = fopen("chat_history", "a");
                                 fprintf(fp, "%s\n", buffer);
                                 fclose(fp);
+                                pthread_mutex_unlock(&clientMutex);
                         } // end else
                 } // end if
-                pthread_mutex_unlock(&mutex);
         } // end while
 } // end clientFunc
 
@@ -67,12 +68,13 @@ void *listening(void *ptr) {
                         continue;
                 }
                 else { // valid client address
+                        pthread_mutex_lock(&listeningMutex);
                         pthread_t clientThread;
                         threads[clientNum] = clientThread;
 
                         clientArr[clientNum] = client_fd;
                         clientNum++;
-
+                        pthread_mutex_unlock(&listeningMutex);
                         // spawn new thread for each connected client
                         pthread_create(&clientThread, NULL, clientFunc, (void *) &client_fd);
                 } // end else
