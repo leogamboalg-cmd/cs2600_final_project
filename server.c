@@ -10,7 +10,7 @@
 #include "sock.h"
 
 int clientArr[MaxConnects];
-int clientNum;
+int clientNum = 0;
 pthread_t threads[MaxConnects];
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -27,8 +27,8 @@ void *clientFunc(void *ptr) {
 
         // constantly send to and receive from client
         while(1) {
-                memset(buffer, '\0', sizeof(buffer)); // reset buffer
                 pthread_mutex_lock(&mutex);
+                memset(buffer, '\0', sizeof(buffer)); // reset buffer
                 int count = recv(client_fd, &buffer, sizeof(buffer), 0);
                 if (count > 0) { // received a message
                         puts(buffer);
@@ -36,7 +36,7 @@ void *clientFunc(void *ptr) {
                         for (int i = 0; i < MaxConnects; ++i) {
                                 curr_client = clientArr[i];
                                 if (curr_client > 0) // on valid address
-                                        send(client_fd, &buffer, sizeof(buffer), 0);
+                                        send(curr_client, &buffer, sizeof(buffer), 0);
                         } // end for
 
                         if (strcmp(buffer, "exit") == 0) {
@@ -48,10 +48,9 @@ void *clientFunc(void *ptr) {
                                 fp = fopen("chat_history", "a");
                                 fprintf(fp, "%s\n", buffer);
                                 fclose(fp);
-
-                                pthread_mutex_unlock(&mutex);
                         } // end else
                 } // end if
+                pthread_mutex_unlock(&mutex);
         } // end while
 } // end clientFunc
 
@@ -75,12 +74,16 @@ void *listening(void *ptr) {
                         clientNum++;
 
                         // spawn new thread for each connected client
-                        int ret_cthread = pthread_create(&clientThread, NULL, clientFunc, (void *) &client_fd);
+                        pthread_create(&clientThread, NULL, clientFunc, (void *) &client_fd);
                 } // end else
         } // end while
 } // end listening
 
 int main() {
+        // clear chat history file
+        FILE *fp = fopen("chat_history", "w");
+        fclose(fp);
+
         int fd = socket(AF_INET, SOCK_STREAM, 0);
         if (fd < 0) report("socket", 1); // terminate
 
