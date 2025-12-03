@@ -23,8 +23,11 @@ void report(const char* msg, int terminate) {
 // send/receive cycle for connected clients
 void *clientFunc(void *ptr) {
         char buffer[BuffSize + 1];
+        char tempBuffer[BuffSize + 1];
         int client_fd = *((int*) ptr);
         FILE *fp;
+        int firstMessage = 1;
+        char username[BuffSize + 1];
 
         // constantly send to and receive from client
         while(1) {
@@ -32,25 +35,44 @@ void *clientFunc(void *ptr) {
                 int count = recv(client_fd, &buffer, sizeof(buffer), 0);
                 if (count > 0) { // received a message
                         puts(buffer);
-                        int curr_client;
-                        for (int i = 0; i < MaxConnects; ++i) {
-                                curr_client = clientArr[i];
-                                if (curr_client > 0 && curr_client != client_fd) // on valid address
-                                        send(curr_client, &buffer, sizeof(buffer), 0);
-                        } // end for
 
-                        if (strcmp(buffer, "exit") == 0) {
-                                pthread_mutex_unlock(&clientMutex);
-                                break;
+                        // save username
+                        if (firstMessage == 1) {
+                                strcpy(username, buffer);
+
+                                int curr_client;
+                                strcat(buffer, " has joined the chat!");
+
+                                for (int i = 0; i < MaxConnects; ++i) {
+                                        curr_client = clientArr[i];
+                                        if (curr_client > 0 && curr_client != client_fd)
+                                                send(curr_client, &buffer, sizeof(buffer), 0);
+                                }
+                                firstMessage = 0;
                         } // end if
                         else {
-                                // save to chat history
-                                pthread_mutex_lock(&clientMutex);
-                                fp = fopen("chat_history", "a");
-                                fprintf(fp, "%s\n", buffer);
-                                fclose(fp);
-                                pthread_mutex_unlock(&clientMutex);
-                        } // end else
+                                strcpy(tempBuffer, username);
+                                strcat(tempBuffer, buffer);
+                                int curr_client;
+                                for (int i = 0; i < MaxConnects; ++i) {
+                                        curr_client = clientArr[i];
+                                        if (curr_client > 0 && curr_client != client_fd) // on valid address
+                                                send(curr_client, &tempBuffer, sizeof(tempBuffer), 0);
+                                } // end for
+
+                                if (strcmp(buffer, "exit") == 0) {
+                                        pthread_mutex_unlock(&clientMutex);
+                                        break;
+                                } // end if
+                                else {
+                                        // save to chat history
+                                        pthread_mutex_lock(&clientMutex);
+                                        fp = fopen("chat_history", "a");
+                                        fprintf(fp, "%s\n", buffer);
+                                        fclose(fp);
+                                        pthread_mutex_unlock(&clientMutex);
+                                } // end else
+                        }
                 } // end if
         } // end while
 } // end clientFunc
