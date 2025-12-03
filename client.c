@@ -95,6 +95,7 @@ void communicateServer(int sockfd) {
             char exitBuffer[100] = " has left the server";
             strcat(username,exitBuffer);
             send(sockfd,username,strlen(username),0);
+            send(sockfd,buffer,strlen(buffer),0);
             break;
         }
 
