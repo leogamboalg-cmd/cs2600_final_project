@@ -32,7 +32,12 @@ void *clientFunc(void *ptr) {
                 int count = recv(client_fd, &buffer, sizeof(buffer), 0);
                 if (count > 0) { // received a message
                         puts(buffer);
-                        send(client_fd, &buffer, sizeof(buffer), 0);
+                        int curr_client;
+                        for (int i = 0; i < MaxConnects; ++i) {
+                                curr_client = clientArr[i];
+                                if (curr_client > 0) // on valid address
+                                        send(client_fd, &buffer, sizeof(buffer), 0);
+                        } // end for
 
                         if (strcmp(buffer, "exit") == 0) {
                                 pthread_mutex_unlock(&mutex);
@@ -41,7 +46,7 @@ void *clientFunc(void *ptr) {
                         else {
                                 // save to chat history
                                 fp = fopen("chat_history", "a");
-                                fprintf(fp, "%s", buffer);
+                                fprintf(fp, "%s\n", buffer);
                                 fclose(fp);
 
                                 pthread_mutex_unlock(&mutex);
