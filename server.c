@@ -9,6 +9,7 @@
 #include <string.h>
 #include "sock.h"
 
+int PortNumber;
 int clientArr[MaxConnects];
 int clientNum = 0;
 pthread_t threads[MaxConnects];
@@ -56,7 +57,7 @@ void *clientFunc(void *ptr) {
                                 for (int i = 0; i < MaxConnects; ++i) {
                                         curr_client = clientArr[i];
                                         if (curr_client > 0 && curr_client != client_fd)
-                                        send(curr_client, &username, sizeof(username), 0);
+                                                send(curr_client, &username, sizeof(username), 0);
                                 } // end for
                                 break; // no use for this loop anymore
                         } // end if
@@ -107,7 +108,15 @@ void *listening(void *ptr) {
         } // end while
 } // end listening
 
-int main() {
+int main(int argc, char *argv[]) {
+
+                // if port isn't provided, end program
+                if (argc != 2) {
+                        printf("Usage: %s <port>\n", argv[0]);
+                        exit(EXIT_FAILURE);
+                }
+                PortNumber = atoi(argv[1]);
+
         int fd = socket(AF_INET, SOCK_STREAM, 0);
         if (fd < 0) report("socket", 1); // terminate
 
