@@ -29,50 +29,54 @@ void *clientFunc(void *ptr) {
         int firstMessage = 1;
         char username[BuffSize + 1];
         char *inBetween = ": ";
+                int curr_client;
 
         // constantly send to and receive from client
         while(1) {
                 memset(buffer, '\0', sizeof(buffer)); // reset buffer
                 int count = recv(client_fd, &buffer, sizeof(buffer), 0);
+
                 if (count > 0) { // received a message
                         puts(buffer);
 
                         // save username
                         if (firstMessage == 1) {
                                 strcpy(username, buffer);
-
-                                int curr_client;
                                 strcat(buffer, " has joined the chat!");
 
                                 for (int i = 0; i < MaxConnects; ++i) {
                                         curr_client = clientArr[i];
                                         if (curr_client > 0 && curr_client != client_fd)
                                                 send(curr_client, &buffer, sizeof(buffer), 0);
-                                }
+                                } // end for
                                 firstMessage = 0;
+                        } // end if
+                        else if (strcmp(buffer, "exit") == 0) {
+                                strcat(username, " has left");
+                                for (int i = 0; i < MaxConnects; ++i) {
+                                        curr_client = clientArr[i];
+                                        if (curr_client > 0 && curr_client != client_fd)
+                                        send(curr_client, &username, sizeof(username), 0);
+                                } // end for
+                                break; // no use for this loop anymore
                         } // end if
                         else {
                                 strcpy(fullMessage, username);
                                 strcat(fullMessage, inBetween);
                                 strcat(fullMessage, buffer);
-                                int curr_client;
                                 for (int i = 0; i < MaxConnects; ++i) {
                                         curr_client = clientArr[i];
                                         if (curr_client > 0 && curr_client != client_fd) // on valid address
                                                 send(curr_client, &fullMessage, sizeof(fullMessage), 0);
                                 } // end for
 
-                                if (strcmp(buffer, "exit") == 0)
-                                        break;
-                                else {
-                                        // save to chat history
-                                        pthread_mutex_lock(&clientMutex);
-                                        fp = fopen("chat_history", "a");
-                                        fprintf(fp, "%s\n", fullMessage);
-                                        fclose(fp);
-                                        pthread_mutex_unlock(&clientMutex);
-                                } // end else
-                        }
+                                // save to chat history
+                                pthread_mutex_lock(&clientMutex);
+                                fp = fopen("chat_history", "a");
+                                fprintf(fp, "%s\n", fullMessage);
+                                fclose(fp);
+                                pthread_mutex_unlock(&clientMutex);
+                        } // end else
                 } // end if
         } // end while
 } // end clientFunc
@@ -104,10 +108,6 @@ void *listening(void *ptr) {
 } // end listening
 
 int main() {
-        // clear chat history file
-        FILE *fp = fopen("chat_history", "w");
-        fclose(fp);
-
         int fd = socket(AF_INET, SOCK_STREAM, 0);
         if (fd < 0) report("socket", 1); // terminate
 
@@ -126,9 +126,14 @@ int main() {
 
         fprintf(stderr, "Listening on port %i for clients...\n", PortNumber);
 
-        // spawn new thread for listening
+        // server up successfully; reset the chat_history
+                FILE *fp = fopen("chat_history", "w");
+                fclose(fp);
+
+                // spawn new thread for listening
         pthread_t listenThread;
         int retVal = pthread_create(&listenThread, NULL, listening, (void *) &fd);
+
 
         // close everything once listening is done
         pthread_join(listenThread, NULL);
