@@ -62,8 +62,7 @@ void* receiveThread(void *arg) {
         //use locks so that only one message is received
         //at a time
         pthread_mutex_lock(&print_lock);
-        printf("\n%s\n", buffer);
-        printf("Message: ");
+        printf("%s\n>", buffer);
         fflush(stdout);
         pthread_mutex_unlock(&print_lock);
     }
@@ -79,7 +78,7 @@ void communicateServer(int sockfd) {
     while(1) {
 
         pthread_mutex_lock(&print_lock);
-        printf("Message: ");
+        printf(">");
         fflush(stdout);
         pthread_mutex_unlock(&print_lock);
 
