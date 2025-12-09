@@ -91,7 +91,7 @@ void communicateServer(int sockfd) {
         buffer[strcspn(buffer, "\n")] = 0;
 
         //if user enters exit, exit from server
-        if(strcmp(buffer,"exit" == 0) {
+        if(strcmp(buffer,"exit") == 0) {
             send(sockfd,buffer,strlen(buffer),0);
             break;
         }
