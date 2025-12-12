@@ -1,0 +1,16 @@
+Leonardo Gamboa
+Nick M Scott
+
+We decided to split up the work by having one of us focus on writing the client code, while the other worked on the server code. 
+Creating the client code was straightforward, as it was designed to have the main thread focus on sending messages, while the other thread 
+focused on constantly receiving them. When starting the client program, the user must first enter the port number. Then, the program prompts 
+the user to enter their username, connects them to the server, and disconnects them if they type “exit”. When a client receives a message, there 
+is a mutex lock so that only one message is received at a time, and then it is printed out to standard output. 
+
+  For the server code, it also starts by providing a port number and then starting up the server for users to connect. The server is constantly 
+listening under the main thread, waiting for users to connect, and once a client does connect, it creates a thread for them. The server is also constantly 
+  receiving messages from the clients, and is in charge of sending that message to every other client in the server, but not to the one that sent the 
+message. The server is also in charge of keeping track of the client's username and then adding it to the start of each user message. Additionally, we 
+write the user's message to a text file and use a mutex lock so that only one message at a time is being added to the file, preventing race conditions. If 
+the message “exit” is sent from a client, that client is disconnected from the server. We don’t have any special way to shut down our server, so the method 
+we used was Ctrl-C.
