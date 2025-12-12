@@ -14,7 +14,6 @@ int clientArr[MaxConnects];
 int clientNum = 0;
 pthread_t threads[MaxConnects];
 pthread_mutex_t clientMutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t listeningMutex = PTHREAD_MUTEX_INITIALIZER;
 
 void report(const char* msg, int terminate) {
         perror(msg);
@@ -95,13 +94,12 @@ void *listening(void *ptr) {
                         continue;
                 }
                 else { // valid client address
-                        pthread_mutex_lock(&listeningMutex);
                         pthread_t clientThread;
                         threads[clientNum] = clientThread;
 
                         clientArr[clientNum] = client_fd;
                         clientNum++;
-                        pthread_mutex_unlock(&listeningMutex);
+
                         // spawn new thread for each connected client
                         pthread_create(&clientThread, NULL, clientFunc, (void *) &client_fd);
                 } // end else
